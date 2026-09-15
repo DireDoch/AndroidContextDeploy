@@ -17,7 +17,7 @@ _Avoid_: config, apps.json, settings file
 
 **Organization**:
 The company the phone is enrolled into, as its name appears on the phone's
-enrollment screens (e.g. the "Contoso device" ownership choice).
+enrollment screens (e.g. the "Example Corp device" ownership choice).
 _Avoid_: tenant, company, client
 
 **Catalog**:
@@ -125,7 +125,7 @@ _Avoid_: cleanup, reset, disconnect
 
 **Tech**: No — remove Teams from the Catalog in the Manifest, add Slack with
 sign-in on. The Organization name goes in the Manifest too, so Enrollment picks
-"Contoso device" on the ownership screen.
+"Example Corp device" on the ownership screen.
 
 **Dev**: Slack isn't on the phone after five minutes.
 

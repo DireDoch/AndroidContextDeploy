@@ -48,7 +48,7 @@ class FakePhone:
 
 
 MANIFEST = parse_manifest({
-    "organization": "Contoso",
+    "organization": "Example Corp",
     "device_settings": [
         {"name": "Timeout", "namespace": "system", "key": "screen_off_timeout", "value": "600000"},
         {"name": "Brightness", "namespace": "system", "key": "screen_brightness", "value": "160"},
@@ -63,7 +63,7 @@ MANIFEST = parse_manifest({
 
 def _ctx(phone, manifest=MANIFEST) -> Context:
     logger = AppLogger()
-    return Context(session=SessionConfig("alex.martin@contoso.com", "x"),
+    return Context(session=SessionConfig("alex.martin@example.com", "x"),
                    device=DeviceInfo(connected=True, serial="X", work_user_id=10),
                    manifest=manifest, apps=[a for a in manifest.catalog if a.selected],
                    adb=phone, runner=WorkflowRunner(phone, logger), log=logger)
@@ -90,7 +90,7 @@ def test_applications_results_cover_every_catalog_entry() -> None:
 
 def test_final_check_reports_profile_apps_and_lockdown() -> None:
     manifest = parse_manifest({
-        "organization": "Contoso",
+        "organization": "Example Corp",
         "catalog": [{"name": "Company Portal", "package_id": "cp", "enrollment": True},
                     {"name": "Teams", "package_id": "com.microsoft.teams"}],
     })

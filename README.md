@@ -20,6 +20,11 @@
 
 ---
 
+<p align="center">
+  <img src="docs/images/interface.png" width="100%"
+       alt="The whole window: device card and Modules on the left, the Session form and the console in the centre, the live touch-enabled Mirror of the phone on the right">
+</p>
+
 ## Where this comes from
 
 This is a spin-off of a tool I wrote on the job as an IT technician, where
@@ -50,8 +55,6 @@ that somebody who has never touched ADB can extend it.
 > Source in [`docs/manual.typ`](docs/manual.typ), built with
 > [Typst](https://typst.app/).
 
-![The main window: the Session form, the Modules, the console and the Mirror](docs/images/interface.png)
-
 ## What it does
 
 A technician plugs a phone in with USB debugging on, types the employee's email
@@ -63,9 +66,12 @@ and password, and runs three **Modules** in order:
 | **Applications** | Enrolls the phone with the **Company Portal** (which creates the Work Profile), then brings each ticked app from the managed Play Store, signs it in and pins it to the home screen. |
 | **Final check** | Confirms the Work Profile and the apps are there, and shows the **Checklist**. |
 
-While it works, the phone is **mirrored live** in the window: you see every
-screen, and your clicks are sent to the phone as touches. Nothing is installed on
-the phone.
+While it works, the phone is **mirrored live** in the window, and the Mirror is
+**touch-enabled**: a click is a tap and a drag is a swipe, landing on the exact
+point under the mouse pointer whatever the window size or display scaling. Every
+Manual Action can be done from the computer, without picking the phone up. Only
+touches are sent — type with the phone's on-screen keyboard. Nothing is installed
+on the phone.
 
 > [!WARNING]
 > The tool drives a phone with an employee's credentials. Read
@@ -94,28 +100,83 @@ needs one:
 `N/A` does not apply to this phone, so its absence is correct rather than a
 problem.
 
-## Requirements
+## Installation and launch
 
-- **To run a release:** Windows 10/11 or a Linux desktop. Nothing to install —
-  adb ships inside.
-- **To run from source:** Python 3.11+ with Tk, then
-  `pip install -r requirements.txt`.
-- **The phone:** Android with *USB debugging* on and this computer allowed.
+### What you need
+
+- **A computer:** Windows 10/11, or a 64-bit Linux desktop (X11 or Wayland).
+- **The phone:** Android and a USB cable that carries **data** (a charge-only
+  cable shows nothing).
 - **For Enrollment:** a Microsoft Intune tenant, with the apps assigned to the
   employee.
 
-## Usage
+### Prepare the phone (once per phone)
 
-Download the zip (Windows) or tarball (Linux) from
-[Releases](https://github.com/DireDoch/AndroidContextDeploy/releases), unpack it,
-and run `AndroidContextDeploy.exe` / `./AndroidContextDeploy`.
+1. *Settings → About phone → Software information*: tap **Build number** seven
+   times. Developer options appear.
+2. *Settings → Developer options*: turn on **USB debugging**.
+3. Plug the cable in and tap **Allow** on the phone (tick *Always allow from this
+   computer*).
 
-Or from a clone:
+### Windows
+
+1. Download `AndroidContextDeploy-vX.Y.Z-windows.zip` from
+   [Releases](https://github.com/DireDoch/AndroidContextDeploy/releases).
+2. Right-click it → **Extract all**. Do not run it from inside the zip.
+3. Double-click `AndroidContextDeploy.exe`. If SmartScreen warns about an
+   unsigned app: *More info → Run anyway*.
+
+adb ships inside. If the phone never appears, install its manufacturer's USB
+driver (Samsung, Google…).
+
+### Linux
+
+1. Download `AndroidContextDeploy-vX.Y.Z-linux.tar.gz` from
+   [Releases](https://github.com/DireDoch/AndroidContextDeploy/releases), then:
+
+   ```bash
+   tar -xzf AndroidContextDeploy-v*-linux.tar.gz
+   cd AndroidContextDeploy
+   ./AndroidContextDeploy
+   ```
+
+2. **Let your user reach the phone over USB.** adb ships inside, but without
+   *udev rules* Linux reports the phone as `no permissions` and the device card
+   never turns green. Install the rules once, then unplug and plug the phone back:
+
+   | Distribution | Command |
+   |---|---|
+   | Debian, Ubuntu, Mint | `sudo apt install android-sdk-platform-tools-common`, then `sudo usermod -aG plugdev $USER` and log out and back in |
+   | Fedora | `sudo dnf install android-tools` |
+   | Arch, Manjaro, CachyOS | `sudo pacman -S android-udev` |
+
+The Linux release is built on Ubuntu 24.04 and needs glibc 2.39 or newer
+(Ubuntu 24.04, Debian 13, Fedora 40 and later); on an older system, run it from
+source. Under Wayland it runs through XWayland, like any Tk application.
+
+### From source (development, or an older Linux)
+
+Python 3.11+ **with Tk**:
+
+| System | Install |
+|---|---|
+| Windows | The [python.org](https://www.python.org/downloads/) installer (Tk included) |
+| Debian, Ubuntu | `sudo apt install python3 python3-venv python3-tk` |
+| Fedora | `sudo dnf install python3 python3-tkinter` |
+| Arch | `sudo pacman -S python tk` |
 
 ```bash
+git clone https://github.com/DireDoch/AndroidContextDeploy.git
+cd AndroidContextDeploy
+python3 -m venv .venv
+source .venv/bin/activate      # fish: .venv/bin/activate.fish · Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 python main.py
 ```
+
+On Linux the udev step above applies here too.
+
+### Options
 
 | Option | Effect |
 |---|---|
@@ -134,7 +195,7 @@ Editing it never needs a rebuild.
 
 ```json
 {
-  "organization": "Contoso",
+  "organization": "Example Corp",
   "language": "auto",
   "device_settings": [
     { "name": "Screen timeout: 10 minutes", "namespace": "system",
@@ -152,7 +213,7 @@ Editing it never needs a rebuild.
 
 | Key | Meaning |
 |---|---|
-| `organization` | Your company as its name appears on the phone's ownership screen ("*Contoso* device"). Enrollment taps that option, never "Personal". |
+| `organization` | Your company as its name appears on the phone's ownership screen ("*Example Corp* device"). Enrollment taps that option, never "Personal". |
 | `language` | UI Language: `auto`, `en`, `fr`… |
 | `device_settings[]` | `name` shown to the technician, and an Android `settings put <namespace> <key> <value>`. `namespace` is `system`, `secure` or `global`. |
 | `catalog[]` | The apps, in the order they are set up. `package_id` is the Play Store id. |

@@ -21,7 +21,7 @@ def test_shipped_manifest_is_valid() -> None:
 
 def _base(**changes) -> dict:
     data = {
-        "organization": "Contoso",
+        "organization": "Example Corp",
         "device_settings": [{"name": "Timeout", "namespace": "system",
                              "key": "screen_off_timeout", "value": 600000}],
         "catalog": [{"name": "Company Portal", "package_id": "com.x", "enrollment": True},
@@ -54,7 +54,7 @@ def test_invalid_manifest_names_the_key(changes, message) -> None:
 
 def test_json_syntax_error_gives_the_line(tmp_path) -> None:
     path = tmp_path / "deploy.json"
-    path.write_text('{\n  "organization": "Contoso",\n}', encoding="utf-8")
+    path.write_text('{\n  "organization": "Example Corp",\n}', encoding="utf-8")
     with pytest.raises(ManifestError, match="line 3"):
         load_manifest(path)
 

@@ -174,32 +174,74 @@ appears, waits patiently on the screens it must not touch, and ends with a
   moments, and tells you clearly when one has arrived.
 ]
 
-== The ways to launch it
+== Installing and launching it
 
-#v(0.2cm)
-#align(center)[
-  #set text(size: 8.5pt)
-  #cetz.canvas({
-    dnode((0, 0), box(width: 12.4cm)[
-      #text(font: ("DejaVu Sans Mono",), size: 8.5pt, weight: "bold")[AndroidContextDeploy.exe] #h(1fr)
-      #text(size: 8pt)[Windows release: unzip, double-click]], w: 13.4, h: 1.0)
-    dnode((0, -1.25), box(width: 12.4cm)[
-      #text(font: ("DejaVu Sans Mono",), size: 8.5pt, weight: "bold")[./AndroidContextDeploy] #h(1fr)
-      #text(size: 8pt)[Linux release: untar, run]], w: 13.4, h: 1.0, fill: greyLight, stroke: grey)
-    dnode((0, -2.5), box(width: 12.4cm)[
-      #text(font: ("DejaVu Sans Mono",), size: 8.5pt, weight: "bold")[python main.py] #h(1fr)
-      #text(size: 8pt)[From a clone, for development]], w: 13.4, h: 1.0, fill: warnBox, stroke: warnOrange)
-  })
-]
-#v(0.2cm)
+A *release* is the normal way for a technician: GitHub Actions builds one for
+every tagged version, and it carries everything, `adb` included. *From source* is
+for development, or for a Linux too old for the release. Either way, prepare the
+phone once as in section 2.2.
 
-*The releases* are the normal way for a technician. They are built by GitHub
-Actions for every tagged version and carry everything, `adb` included: nothing to
-install. `deploy.json`, `banner.txt` and `locales/` sit next to the executable
-and can be edited without rebuilding.
+#table(
+  columns: (auto, 1fr), stroke: none, inset: (x: 4pt, y: 5pt),
+  fill: (_, row) => if calc.odd(row) { greyLight },
+  [*Windows*], [Download `AndroidContextDeploy-v…-windows.zip` from the GitHub
+    *Releases* page. Right-click → *Extract all* (never run it from inside the
+    zip), then double-click `AndroidContextDeploy.exe`. If SmartScreen warns
+    about an unsigned app: *More info → Run anyway*. A phone that never appears
+    needs its manufacturer's USB driver.],
+  [*Linux*], [Download `AndroidContextDeploy-v…-linux.tar.gz`, then in a terminal:
+    \ `tar -xzf AndroidContextDeploy-v*-linux.tar.gz`
+    \ `cd AndroidContextDeploy && ./AndroidContextDeploy`],
+  [*From source*], [Python 3.11+ with Tk, a virtual environment,
+    `pip install -r requirements.txt`, `python main.py` — below.],
+)
 
-*From source* is for development: `pip install -r requirements.txt`, then
-`python main.py`. It needs Python 3.11 or later with Tk.
+`deploy.json`, `banner.txt` and `locales/` sit next to the executable (at the
+root of the clone from source) and can be edited without rebuilding.
+
+=== Linux: letting adb reach the phone
+
+The release brings its own `adb`, but Linux only lets a normal user open a USB
+phone when *udev rules* allow it. Without them the device card stays on
+`no permissions`, however often the phone says *Allow*. Install the rules once,
+then unplug and plug the phone back:
+
+#table(
+  columns: (auto, 1fr), stroke: none, inset: (x: 4pt, y: 5pt),
+  fill: (_, row) => if calc.odd(row) { greyLight },
+  [Debian, Ubuntu, Mint], [`sudo apt install android-sdk-platform-tools-common`, then
+    `sudo usermod -aG plugdev $USER`, and log out and back in],
+  [Fedora], [`sudo dnf install android-tools`],
+  [Arch, Manjaro, CachyOS], [`sudo pacman -S android-udev`],
+)
+
+The Linux release is built on Ubuntu 24.04 and needs glibc 2.39 or newer
+(Ubuntu 24.04, Debian 13, Fedora 40 and later); on an older system, run it from
+source. Under Wayland it runs through XWayland, like every Tk application.
+
+=== From source
+
+Install Python 3.11 or later *with Tk*:
+
+#table(
+  columns: (auto, 1fr), stroke: none, inset: (x: 4pt, y: 5pt),
+  fill: (_, row) => if calc.odd(row) { greyLight },
+  [Windows], [The python.org installer — Tk is included.],
+  [Debian, Ubuntu], [`sudo apt install python3 python3-venv python3-tk`],
+  [Fedora], [`sudo dnf install python3 python3-tkinter`],
+  [Arch], [`sudo pacman -S python tk`],
+)
+
+```bash
+git clone https://github.com/DireDoch/AndroidContextDeploy.git
+cd AndroidContextDeploy
+python3 -m venv .venv
+source .venv/bin/activate   # fish: activate.fish · Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+python main.py
+```
+
+=== Options
 
 Every form accepts two options:
 
@@ -230,7 +272,7 @@ Every form accepts two options:
   [*Computer*], [Windows 10/11 or a Linux desktop, one free USB port.],
   [*Phone*], [Android, with *USB debugging* on and this computer allowed.],
   [*Intune*], [A tenant where the apps of the Catalog are *assigned* to the employee. The tool never talks to Intune; the phone does.],
-  [*The manifest*], [`deploy.json` names *your* Organization, apps and settings. The shipped file is a generic Microsoft example for "Contoso".],
+  [*The manifest*], [`deploy.json` names *your* Organization, apps and settings. The shipped file is a generic Microsoft example for "Example Corp".],
   [*The employee*], [Nearby, with their own phone, for MFA.],
 )
 
@@ -345,7 +387,7 @@ appears it types into it.
 
     #console(
       cline("[INFO] Microsoft Teams: email field found."),
-      cline("       Typing alex.martin@contoso.com."),
+      cline("       Typing alex.martin@example.com."),
       cline("[OK] Email typed into Microsoft Teams.", fill: cGreen),
     )
   ],
@@ -381,9 +423,16 @@ Checklist to OK. It is never run automatically.
 === The Mirror
 
 The Mirror is the phone's screen at up to 30 frames per second, drawn at its
-real aspect ratio. A click is a tap, a drag is a swipe. The two buttons in its
-corner make it wider or fold it away. If it cannot start, the rest of the tool
-works exactly the same; the console says why.
+real aspect ratio, and it is *touch-enabled*: a click is a tap, a drag is a
+swipe, and both land on the exact point under the mouse pointer — whatever the
+window size, the Mirror size or the display scaling (100 %, 125 %, 150 %…).
+Every Manual Action can be done from the computer without picking the phone up.
+
+Only touches are sent: not the computer keyboard, not the mouse wheel, not the
+phone's hardware keys. Type with the phone's on-screen keyboard, in the Mirror.
+
+The two buttons in its corner make it wider or fold it away. If it cannot start,
+the rest of the tool works exactly the same; the console says why.
 
 === The console
 
@@ -427,7 +476,7 @@ forbidden to ADB by Android, or a secret only the employee has.
   [Device settings], [`settings put`, read back.], text(fill: okGreen)[tool],
   [Opening the store page], [An intent on the managed Play Store.], text(fill: okGreen)[tool],
   [Typing email and password], [Injection into a recognised field.], text(fill: okGreen)[tool],
-  [Enrollment screens it knows], [Continue, Skip, Accept, "Contoso device", Phone method…], text(fill: okGreen)[tool],
+  [Enrollment screens it knows], [Continue, Skip, Accept, "Example Corp device", Phone method…], text(fill: okGreen)[tool],
   [Pinning to the home screen], [A launcher broadcast. Some launchers refuse it.], text(fill: okGreen)[tool, or you],
   [Opening a Work Profile app], [Android Enterprise refuses it to ADB (`SecurityException`).], text(fill: warnOrange)[you],
   [Approving MFA], [It happens on the employee's authenticator.], text(fill: warnOrange)[employee],
@@ -758,7 +807,7 @@ from tapping the wrong button on it.
   columns: (auto, 1fr), stroke: none, inset: (x: 5pt, y: 5pt),
   fill: (_, row) => if row == 0 { accentLight } else if calc.even(row) { greyLight },
   [*Screen (key)*], [*What the tool does*],
-  [Ownership (`ownership`)], [Taps the option containing the *Organization* from `deploy.json` ("Contoso device"), *never* "Personal", then Finish.],
+  [Ownership (`ownership`)], [Taps the option containing the *Organization* from `deploy.json` ("Example Corp device"), *never* "Personal", then Finish.],
   [Method dialog (`method_dialog`)], [Taps *Phone*, then *Confirm*.],
   [Phone entry (`phone_entry`)], [Types the Session's personal phone, ticks "Text me a code", taps Next. No number: Manual Action.],
   [Authenticator (`authenticator_other_method`)], [Taps the "set up a different method" *link*, not the big Next button.],
@@ -775,7 +824,7 @@ waits for the next screen change. It never taps something it does not recognise.
 The ownership screen is the one place where a wrong tap is expensive: choosing
 "Personal" enrolls the phone as a personal device, with different policies. The
 detector only taps an option containing the `organization` string from
-`deploy.json`. A manifest that says "Contoso" on a Fabrikam phone taps nothing,
+`deploy.json`. A manifest that says "Example Corp" on another company's phone taps nothing,
 and the technician chooses in the Mirror.
 
 = Extending it
@@ -822,7 +871,7 @@ little differently.
   names the screen as *UNRECOGNISED* and lists its buttons.
 + *Find it.* In `diag/session_…/`, `trace.jsonl` numbers the screens; open the
   matching `NNN.xml`. The password and phone number are already masked; replace
-  any other personal text (names, the email) with Contoso values.
+  any other personal text (names, the email) with Example Corp values.
 + *Lock it in a test.* Paste the XML into `tests/test_detection.py` as a
   `DUMP_…` constant and assert what the detector should see — it fails.
 + *Teach it.* Add the short fragments to the right keyword table in
@@ -832,12 +881,12 @@ little differently.
 
 ```python
 DUMP_ACCESS_SETUP_ES = _wrap(
-    '<node class="android.widget.TextView" text="Configurar el acceso a Contoso" .../>'
+    '<node class="android.widget.TextView" text="Configurar el acceso a Example Corp" .../>'
     '<node class="android.widget.Button" text="CONTINUAR" clickable="true"'
     ' bounds="[560,1700][1040,1800]"/>')
 
 def test_access_setup_in_spanish() -> None:
-    s = ScreenDetector("Contoso").analyze(DUMP_ACCESS_SETUP_ES)
+    s = ScreenDetector("Example Corp").analyze(DUMP_ACCESS_SETUP_ES)
     assert s.named_screen == "access_setup"
 ```
 

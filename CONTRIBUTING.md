@@ -74,7 +74,7 @@ on Ubuntu and Windows for every pull request.
   "assign it in Intune, or remove catalog 'Slack' from deploy.json" does.
 - **No personal data, ever.** No real email, password, phone number, company name
   or screenshot of a real account in code, fixtures, issues or docs. Use
-  `contoso.com` and `+1 202 555 01xx`.
+  `example.com` and `+1 202 555 01xx`.
 
 ## House style
 

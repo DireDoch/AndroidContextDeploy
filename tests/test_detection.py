@@ -18,7 +18,7 @@ from androidcontextdeploy.signin import SignInDriver
 
 i18n.load(Path(__file__).resolve().parents[1], "en")
 
-EMAIL = "alex.martin@contoso.com"
+EMAIL = "alex.martin@example.com"
 PASSWORD = "S3cret&Pass!"
 PHONE = "+1 202 555 0143"
 
@@ -119,7 +119,7 @@ DUMP_PHONE_ENTRY = _wrap(
 
 # Must target CONTINUER, never SE DÉCONNECTER.
 DUMP_ACCESS_SETUP = _wrap(
-    '<node class="android.widget.TextView" text="Configuration de l\'accès à Contoso" bounds="[0,200][1080,320]"/>'
+    '<node class="android.widget.TextView" text="Configuration de l\'accès à Example Corp" bounds="[0,200][1080,320]"/>'
     '<node class="android.widget.TextView" text="Créer un profil professionnel" bounds="[120,600][1000,680]"/>'
     '<node class="android.widget.TextView" text="Activer un profil professionnel" bounds="[120,760][1000,840]"/>'
     '<node class="android.widget.Button" text="SE DÉCONNECTER" clickable="true" bounds="[40,1700][520,1800]"/>'
@@ -132,18 +132,18 @@ DUMP_TERMS = _wrap(
 # The Organization's device, NEVER the personal one.
 DUMP_OWNERSHIP = _wrap(
     '<node class="android.widget.TextView" text="À qui appartient cet appareil ?" bounds="[0,200][1080,300]"/>'
-    '<node class="android.view.View" text="CONTOSO device" clickable="true" bounds="[80,500][1000,620]"/>'
+    '<node class="android.view.View" text="EXAMPLE CORP device" clickable="true" bounds="[80,500][1000,620]"/>'
     '<node class="android.view.View" text="PERSONAL device" clickable="true" bounds="[80,680][1000,800]"/>'
     '<node class="android.widget.Button" text="Terminer" clickable="true" bounds="[600,1800][1000,1900]"/>')
 
 DUMP_MANAGED_PLAY_STORE = _wrap(
     '<node class="android.widget.TextView" text="Ouvrez la version de Google Play avec badges"'
     ' bounds="[0,200][1080,300]"/>'
-    '<node class="android.widget.TextView" text="applications suggérées par Contoso" bounds="[0,320][1080,400]"/>')
+    '<node class="android.widget.TextView" text="applications suggérées par Example Corp" bounds="[0,320][1080,400]"/>')
 
 
 def test_detector() -> None:
-    d = ScreenDetector("Contoso")
+    d = ScreenDetector("Example Corp")
 
     s = d.analyze(DUMP_EMAIL_WEBVIEW)
     assert s.email_field is not None and s.email_field.is_empty, "placeholder counts as empty"
@@ -180,7 +180,7 @@ def test_detector() -> None:
 
 
 def test_named_screens() -> None:
-    d = ScreenDetector("Contoso")
+    d = ScreenDetector("Example Corp")
 
     s = d.analyze(DUMP_SKIP_SETUP)
     assert s.named_screen == "skip_setup" and s.named_targets["skip"].text == "Ignorer"
@@ -210,11 +210,11 @@ def test_named_screens() -> None:
 
     s = d.analyze(DUMP_OWNERSHIP)
     assert s.named_screen == "ownership"
-    assert s.named_targets["device_org"].text == "CONTOSO device"
+    assert s.named_targets["device_org"].text == "EXAMPLE CORP device"
     assert s.named_targets["finish"].text == "Terminer"
 
-    # Another Organization never taps Contoso's option -- nor the personal one.
-    s = ScreenDetector("Fabrikam").analyze(DUMP_OWNERSHIP)
+    # Another Organization never taps Example Corp's option -- nor the personal one.
+    s = ScreenDetector("Other Corp").analyze(DUMP_OWNERSHIP)
     assert "device_org" not in s.named_targets
 
     s = d.analyze(DUMP_MANAGED_PLAY_STORE)
@@ -257,7 +257,7 @@ class FakeAdb:
 def _driver(adb) -> tuple[SignInDriver, WorkflowRunner, AppLogger]:
     logger = AppLogger()
     runner = WorkflowRunner(adb, logger)
-    return SignInDriver(runner, "Contoso"), runner, logger
+    return SignInDriver(runner, "Example Corp"), runner, logger
 
 
 def _sign_in(dumps, confirm_after=None):
@@ -298,7 +298,7 @@ def test_enrollment_full_flow() -> None:
         DUMP_METHOD_DIALOG, DUMP_METHOD_DIALOG_CONFIRM,
         DUMP_PHONE_ENTRY, DUMP_PHONE_ENTRY, DUMP_PHONE_ENTRY,   # number, checkbox, Next
         DUMP_MFA, DUMP_MFA, DUMP_TERMS,
-        DUMP_OWNERSHIP, DUMP_OWNERSHIP,                          # Contoso, then Finish
+        DUMP_OWNERSHIP, DUMP_OWNERSHIP,                          # Example Corp, then Finish
         DUMP_MANAGED_PLAY_STORE,                                 # the gate
     ])
     assert outcome == "play_store"
@@ -306,7 +306,7 @@ def test_enrollment_full_flow() -> None:
     taps = [(a[1], a[2]) for a in adb.actions if a[0] == "tap"]
     assert (540, 1440) in taps, "the 'different method' link is tapped"
     assert (850, 1750) not in taps, "the main Next button is NEVER tapped"
-    assert (540, 560) in taps, "the Contoso device option is tapped"
+    assert (540, 560) in taps, "the Example Corp device option is tapped"
     assert (540, 740) not in taps, "the personal device option is NEVER tapped"
     assert "S3cret" not in messages and "0143" not in messages, "no secret in the log"
 
