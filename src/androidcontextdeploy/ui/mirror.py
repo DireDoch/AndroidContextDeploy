@@ -2,10 +2,11 @@
 ratio and turns clicks and drags into touches in stream coordinates."""
 from __future__ import annotations
 
+import tkinter as tk
 from typing import Callable
 
 import customtkinter as ctk
-from PIL import Image
+from PIL import Image, ImageTk
 
 from androidcontextdeploy.i18n import t
 from androidcontextdeploy.ui import theme
@@ -20,7 +21,7 @@ class MirrorPanel(ctk.CTkFrame):
         self._on_touch = on_touch
         self._on_resize = on_resize
         self._size_state = "normal"
-        self._image: ctk.CTkImage | None = None
+        self._image: ImageTk.PhotoImage | None = None
         self._display_size = (0, 0)
         self._frame_size = (0, 0)
         self._streaming = False
@@ -64,7 +65,11 @@ class MirrorPanel(ctk.CTkFrame):
                                           text_color=theme.TEXT, wraplength=300)
         self._instructions.grid(row=3, column=0, padx=18, pady=(14, 0), sticky="w")
 
-        self._video = ctk.CTkLabel(self._screen, text="", fg_color=theme.BG)
+        # A plain tk.Label, not a CTkLabel: CTkImage multiplies its size by the
+        # display scaling and CTkLabel reports clicks from an inner, centred
+        # label, so taps landed up to hundreds of pixels off. Here the picture
+        # and the click are both in real pixels of this one widget.
+        self._video = tk.Label(self._screen, bg=theme.BG, bd=0, highlightthickness=0)
         self._video.grid(row=0, column=0, sticky="nsew", padx=4, pady=4)
         self._video.bind("<Button-1>", lambda e: self._touch(e, "down"))
         self._video.bind("<B1-Motion>", lambda e: self._touch(e, "move"))
@@ -118,8 +123,8 @@ class MirrorPanel(ctk.CTkFrame):
             avail_h = max(self._screen.winfo_height() - 8, 1)
         scale = min(avail_w / width, avail_h / height)
         display = (max(int(width * scale), 1), max(int(height * scale), 1))
-        picture = Image.fromarray(frame[:, :, ::-1])
-        self._image = ctk.CTkImage(light_image=picture, dark_image=picture, size=display)
+        picture = Image.fromarray(frame[:, :, ::-1]).resize(display, Image.Resampling.BILINEAR)
+        self._image = ImageTk.PhotoImage(picture)
         self._video.configure(image=self._image)
         self._frame_size, self._display_size = (width, height), display
         if not self._streaming:
