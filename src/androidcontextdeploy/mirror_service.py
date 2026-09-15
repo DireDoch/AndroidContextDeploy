@@ -15,6 +15,7 @@ import struct
 import threading
 import time
 from pathlib import Path
+from typing import Any
 
 from androidcontextdeploy.i18n import t
 from androidcontextdeploy.manifest import app_root
@@ -52,12 +53,13 @@ class MirrorService:
         self.logger = logger
         self._state = "idle"
         self._state_lock = threading.Lock()
-        self._frame = None
-        self._frame_seq = 0
+        # (frame number, BGR frame or None), replaced as one tuple so the UI
+        # never pairs a number with another frame.
+        self._latest: tuple[int, Any] = (0, None)
         self._video_socket: socket.socket | None = None
         self._control_socket: socket.socket | None = None
         self._control_lock = threading.Lock()
-        self._server_stream = None
+        self._server_stream: Any = None        # adbutils' shell stream
         # adbutils must use the same adb as AdbService, or two adb servers of
         # different versions fight over port 5037.
         if adb_command and Path(adb_command).exists():
@@ -140,7 +142,7 @@ class MirrorService:
             self._state = "idle"
             closeables = (self._video_socket, self._control_socket, self._server_stream)
             self._video_socket = self._control_socket = self._server_stream = None
-        self._frame = None
+        self._latest = (self._latest[0], None)
         for closeable in closeables:
             try:
                 if closeable is not None:
@@ -170,18 +172,17 @@ class MirrorService:
             try:
                 for packet in codec.parse(raw):
                     for frame in codec.decode(packet):
-                        self._frame = frame.to_ndarray(format="bgr24")
-                        self._frame_seq += 1
+                        self._latest = (self._latest[0] + 1, frame.to_ndarray(format="bgr24"))
             except Exception:
                 continue                            # truncated packet mid-transition
 
-    def get_frame(self):
+    def get_frame(self) -> tuple[int, Any]:
         """(frame number, BGR frame or None) -- the UI redraws on a new number only."""
-        return self._frame_seq, self._frame
+        return self._latest
 
     def touch(self, x: float, y: float, action: str) -> None:
         """A touch in stream coordinates (the scrcpy resolution)."""
-        control, frame = self._control_socket, self._frame
+        control, frame = self._control_socket, self._latest[1]
         if control is None or frame is None or self._state != "running":
             return
         height, width = frame.shape[0], frame.shape[1]

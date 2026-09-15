@@ -35,6 +35,7 @@ class AppEntry:
     sign_in: bool = False      # run the Detection Loop and inject credentials
     pin: bool = False          # put a shortcut on the home screen
     selected: bool = True      # ticked by default in the Applications card
+    activity: str = ""         # launcher activity, for phones that cannot resolve it
 
 
 @dataclass(slots=True)
@@ -87,6 +88,9 @@ def parse_manifest(data: object) -> Manifest:
         where = f"catalog[{i}]"
         if not isinstance(raw, dict):
             raise ManifestError(f"{where} must be an object.")
+        activity = str(raw.get("activity", "")).strip()
+        if activity and "/" not in activity:
+            raise ManifestError(f"{where}: 'activity' must look like package/.Activity.")
         catalog.append(AppEntry(
             name=_require_str(raw, "name", where),
             package_id=_require_str(raw, "package_id", where),
@@ -94,6 +98,7 @@ def parse_manifest(data: object) -> Manifest:
             sign_in=bool(raw.get("sign_in", False)),
             pin=bool(raw.get("pin", False)),
             selected=bool(raw.get("selected", True)),
+            activity=activity,
         ))
 
     names = [app.name for app in catalog]

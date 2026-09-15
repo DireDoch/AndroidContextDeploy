@@ -3,7 +3,8 @@ ratio and turns clicks and drags into touches in stream coordinates."""
 from __future__ import annotations
 
 import tkinter as tk
-from typing import Callable
+from collections.abc import Callable
+from typing import ClassVar
 
 import customtkinter as ctk
 from PIL import Image, ImageTk
@@ -13,7 +14,7 @@ from androidcontextdeploy.ui import theme
 
 
 class MirrorPanel(ctk.CTkFrame):
-    SIZES = {"compact": 56, "normal": 360, "large": 560}   # column width in px
+    SIZES: ClassVar[dict[str, int]] = {"compact": 56, "normal": 360, "large": 560}   # column width in px
 
     def __init__(self, master, on_touch: Callable[[float, float, str], None],
                  on_resize: Callable[[str], None]) -> None:
@@ -133,14 +134,28 @@ class MirrorPanel(ctk.CTkFrame):
             self._video.tkraise()
 
     def _touch(self, event, action: str) -> None:
-        disp_w, disp_h = self._display_size
-        if not self._streaming or disp_w <= 0 or disp_h <= 0:
+        if not self._streaming:
             return
-        # The image is centred in the label: remove the margins first.
-        ratio_x = (event.x - (self._video.winfo_width() - disp_w) / 2) / disp_w
-        ratio_y = (event.y - (self._video.winfo_height() - disp_h) / 2) / disp_h
-        if action == "down" and not (0 <= ratio_x <= 1 and 0 <= ratio_y <= 1):
-            return
-        frame_w, frame_h = self._frame_size
-        self._on_touch(min(max(ratio_x, 0.0), 1.0) * frame_w,
-                       min(max(ratio_y, 0.0), 1.0) * frame_h, action)
+        # A press must land on the picture; a drag that leaves it sticks to the edge.
+        point = stream_point((event.x, event.y), (self._video.winfo_width(), self._video.winfo_height()),
+                             self._display_size, self._frame_size, clamp=action != "down")
+        if point is not None:
+            self._on_touch(point[0], point[1], action)
+
+
+def stream_point(click: tuple[float, float], widget_size: tuple[int, int], display_size: tuple[int, int],
+                 frame_size: tuple[int, int], clamp: bool) -> tuple[float, float] | None:
+    """Where a click on the video widget falls in stream coordinates.
+
+    The picture (display_size, real pixels) is centred in the widget, so the
+    margins come off first. Off the picture: None, or the nearest edge if clamp.
+    """
+    disp_w, disp_h = display_size
+    if disp_w <= 0 or disp_h <= 0:
+        return None
+    ratio_x = (click[0] - (widget_size[0] - disp_w) / 2) / disp_w
+    ratio_y = (click[1] - (widget_size[1] - disp_h) / 2) / disp_h
+    if not clamp and not (0 <= ratio_x <= 1 and 0 <= ratio_y <= 1):
+        return None
+    return (min(max(ratio_x, 0.0), 1.0) * frame_size[0],
+            min(max(ratio_y, 0.0), 1.0) * frame_size[1])

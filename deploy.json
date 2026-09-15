@@ -9,10 +9,15 @@
   ],
 
   "catalog": [
-    { "name": "Company Portal",          "package_id": "com.microsoft.windowsintune.companyportal", "enrollment": true, "sign_in": true, "pin": true },
-    { "name": "Microsoft Authenticator", "package_id": "com.azure.authenticator",       "sign_in": true, "pin": true },
-    { "name": "Microsoft Teams",         "package_id": "com.microsoft.teams",           "sign_in": true, "pin": true },
-    { "name": "Microsoft Outlook",       "package_id": "com.microsoft.office.outlook",  "sign_in": true, "pin": true },
-    { "name": "Microsoft Edge",          "package_id": "com.microsoft.emmx",            "selected": false }
+    { "name": "Company Portal",          "package_id": "com.microsoft.windowsintune.companyportal", "enrollment": true, "sign_in": true, "pin": true,
+      "activity": "com.microsoft.windowsintune.companyportal/com.microsoft.intune.MainActivity" },
+    { "name": "Microsoft Authenticator", "package_id": "com.azure.authenticator",       "sign_in": true, "pin": true,
+      "activity": "com.azure.authenticator/.AuthenticatorActivity" },
+    { "name": "Microsoft Teams",         "package_id": "com.microsoft.teams",           "sign_in": true, "pin": true,
+      "activity": "com.microsoft.teams/.activity.TeamsActivity" },
+    { "name": "Microsoft Outlook",       "package_id": "com.microsoft.office.outlook",  "sign_in": true, "pin": true,
+      "activity": "com.microsoft.office.outlook/.MainActivity" },
+    { "name": "Microsoft Edge",          "package_id": "com.microsoft.emmx",            "selected": false,
+      "activity": "com.microsoft.emmx/.MainActivity" }
   ]
 }

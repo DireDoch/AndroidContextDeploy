@@ -16,9 +16,9 @@ from __future__ import annotations
 import json
 import subprocess
 import threading
+from collections.abc import Callable, Iterable
 from datetime import datetime
 from pathlib import Path
-from typing import Callable, Iterable
 
 from androidcontextdeploy.detection import ScreenDetector, screen_signature
 from androidcontextdeploy.models import ScreenAnalysis
@@ -84,11 +84,12 @@ class DiagnosticRecorder:
                        analysis: ScreenAnalysis) -> None:
         """Save NNN.xml (masked), NNN.png and a trace line -- once per screen."""
         with self._lock:
-            if not self.active or signature == self._last_signature:
+            session_dir = self._session_dir
+            if session_dir is None or signature == self._last_signature:
                 return
             self._last_signature = signature
             self._screen_index += 1
-            tag, session_dir = f"{self._screen_index:03d}", self._session_dir
+            tag = f"{self._screen_index:03d}"
         (session_dir / f"{tag}.xml").write_text(self.mask(xml_text), encoding="utf-8")
         self._screencap(serial, session_dir / f"{tag}.png")
         record = {"i": int(tag), "t": f"{datetime.now():%H:%M:%S}", "verdict": self._verdict(analysis)}

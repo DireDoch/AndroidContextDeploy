@@ -4,9 +4,13 @@ from __future__ import annotations
 
 import queue
 import threading
+from typing import TYPE_CHECKING
 
 from androidcontextdeploy.i18n import t
 from androidcontextdeploy.models import AppLogger, Result
+
+if TYPE_CHECKING:
+    from androidcontextdeploy.diagnostics import DiagnosticPoller
 
 
 class WorkflowRunner:
@@ -19,7 +23,7 @@ class WorkflowRunner:
         self.auth_gate = threading.Event()
         # "Cancel session": the only way out of Enrollment short of the gate.
         self.cancel_gate = threading.Event()
-        self.poller = None            # DiagnosticPoller when --diag, else None
+        self.poller: DiagnosticPoller | None = None     # only with --diag
         self._busy = False
         self._busy_lock = threading.Lock()
 

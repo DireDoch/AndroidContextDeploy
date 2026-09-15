@@ -10,7 +10,7 @@ import threading
 from pathlib import Path
 
 from androidcontextdeploy import i18n
-from androidcontextdeploy.adb import AdbService
+from androidcontextdeploy.adb import NOT_TYPEABLE, AdbService
 from androidcontextdeploy.detection import ScreenDetector
 from androidcontextdeploy.models import AppLogger, DeviceInfo, SessionConfig
 from androidcontextdeploy.runner import WorkflowRunner
@@ -412,3 +412,20 @@ def test_open_app_prefers_am_start() -> None:
 def test_is_installed_matches_the_exact_package() -> None:
     adb = ScriptedAdb(lambda args: (True, "package:com.microsoft.teamsbeta", ""))
     assert not adb.is_installed("S", "com.microsoft.teams")
+
+
+def test_a_password_adb_cannot_type_is_handed_to_the_technician() -> None:
+    class AsciiOnlyAdb(FakeAdb):
+        def inject_text(self, serial, text):
+            return (False, NOT_TYPEABLE) if not text.isascii() else super().inject_text(serial, text)
+
+    adb = AsciiOnlyAdb([DUMP_EMAIL_WEBVIEW, DUMP_EMAIL_FILLED, DUMP_PASSWORD, DUMP_PASSWORD,
+                        DUMP_PASSWORD_FILLED, DUMP_HOME, DUMP_HOME, DUMP_HOME])
+    driver, runner, logger = _driver(adb)
+    outcome = driver.run_sign_in(SessionConfig(EMAIL, "Pässw0rd"), DeviceInfo(connected=True, serial="X"),
+                                 "Microsoft Teams", timeout=30, poll_interval=0.01)
+    assert outcome == "auto"
+    assert driver.hand_typed == {"Microsoft Teams"}
+    manual = [e for e in runner.drain_events() if e["type"] == "manual_action" and e["message"]]
+    assert len(manual) == 1, "the technician is asked once, not on every poll"
+    assert "Pässw0rd" not in " ".join(e.message for e in logger.drain())

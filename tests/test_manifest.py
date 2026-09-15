@@ -71,3 +71,10 @@ def test_app_root() -> None:
 def test_locale_files_are_valid_json() -> None:
     for path in (ROOT / "locales").glob("*.json"):
         json.loads(path.read_text(encoding="utf-8"))
+
+
+def test_activity_is_optional_and_must_name_a_component() -> None:
+    manifest = parse_manifest(_base(catalog=[{"name": "Teams", "package_id": "com.y", "activity": "com.y/.Main"}]))
+    assert manifest.catalog[0].activity == "com.y/.Main"
+    with pytest.raises(ManifestError, match="activity"):
+        parse_manifest(_base(catalog=[{"name": "Teams", "package_id": "com.y", "activity": "Main"}]))

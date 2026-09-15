@@ -18,6 +18,7 @@ DYNAMIC = (
     + [f"app_status.{s}" for s in ("waiting", "opening_store", "installing", "installed", "manual",
                                    "auth_pending", "auth_confirmed", "pinning", "pinned",
                                    "pin_manual", "failed")]
+    + [f"field.{w}" for w in ("email", "password", "phone")]
     + [f"enroll.target.{r}" for r in ("skip", "link", "accept", "continue", "phone_option",
                                       "confirm", "device_org", "finish", "sms_checkbox", "next")]
 )

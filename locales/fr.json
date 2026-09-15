@@ -57,6 +57,9 @@
   "enroll.target.sms_checkbox": "« Envoyez-moi un code par texto »",
   "enroll.target.next": "« Suivant » après le numéro",
 
+  "field.email": "le courriel",
+  "field.password": "le mot de passe",
+  "field.phone": "le numéro de téléphone",
   "form.eyebrow": "SESSION TECHNICIEN",
   "form.title": "Connexion avec le compte {organization}",
   "form.subtitle": "Courriel et mot de passe de l'employé. Gardés en mémoire seulement, jamais écrits sur disque.",
@@ -73,6 +76,7 @@
 
   "log.app.ready": "Prêt. En attente d'une session technicien. (adb : {adb})",
   "log.app.session_started": "Session démarrée pour {email}.",
+  "log.app.not_typeable": "La session contient des caractères que l'outil ne peut pas taper sur un téléphone (accents, lettres non latines). Quand une connexion en aura besoin, vous les taperez dans le miroir.",
   "log.app.session_reset": "Session réinitialisée. En attente d'une session technicien.",
   "log.app.busy_reset": "Un module est en cours : terminez-le ou annulez-le avant une nouvelle session.",
   "log.app.no_device": "Aucun appareil connecté.",
@@ -123,12 +127,14 @@
   "log.signin.password_injected": "Mot de passe saisi.",
   "log.signin.password_failed": "Saisie du mot de passe échouée ({error}). Saisissez-le à la main.",
   "log.signin.password_manual": "{app} : champ mot de passe, mais aucun mot de passe en session. Saisissez-le à la main.",
+  "log.signin.not_typeable": "{app} : {what} contient des caractères qu'adb ne peut pas taper (accents, lettres non latines). Tapez-le dans le miroir.",
   "log.signin.button": "{app} : clic sur « {label} ».",
   "log.signin.button_stuck": "{app} : « {label} » toujours affiché après 2 clics. Continuez sur le téléphone, puis Confirmer.",
 
   "manual.open_app": "Ouvrez « {app} » sur le téléphone : touchez son icône dans le miroir. Dès l'écran de connexion, l'outil tape lui-même le courriel et le mot de passe.",
   "manual.sms_code": "Saisissez le code reçu par SMS sur le téléphone, puis « Vérifier ». L'outil reprend au changement d'écran.",
   "manual.phone_entry": "Aucun numéro en session : saisissez le numéro de l'employé, cochez « Envoyez-moi un code par texto » et laissez l'employé terminer le MFA. L'enrôlement ne continue qu'une fois le Play Store géré affiché.",
+  "manual.type_by_hand": "Tapez vous-même {what} dans le miroir : il contient des caractères que l'outil ne peut pas taper (accents, lettres non latines). L'outil continue dès que l'écran change.",
 
   "mirror.title": "▌MIROIR",
   "mirror.no_device": "Aucun appareil",
@@ -172,6 +178,7 @@
   "result.app.sign_in_manual": "se connecter à la main",
   "result.app.pinned": "épinglée",
   "result.app.pin_manual": "épingler sur l'écran d'accueil à la main",
+  "result.app.typed_by_hand": "identifiant tapé à la main (caractères qu'adb ne peut pas taper)",
   "result.enrollment.done": "enrôlée",
   "result.enrollment.cancelled": "Enrôlement annulé avant le Play Store géré",
   "result.final.profile": "Profil professionnel",

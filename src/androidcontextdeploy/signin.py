@@ -15,7 +15,7 @@ import threading
 import time
 from dataclasses import dataclass, field
 
-from androidcontextdeploy.adb import KEY_ENTER
+from androidcontextdeploy.adb import KEY_ENTER, NOT_TYPEABLE
 from androidcontextdeploy.detection import ScreenDetector, screen_signature
 from androidcontextdeploy.i18n import t
 from androidcontextdeploy.models import DeviceInfo, ScreenAnalysis, SessionConfig, UiField
@@ -47,6 +47,9 @@ class SignInDriver:
         self.adb = runner.adb
         self.log = runner.logger
         self.organization = organization
+        # Apps where the technician had to type a credential the tool cannot
+        # (non-ASCII): the Applications Module turns them into a MANUAL row.
+        self.hand_typed: set[str] = set()
 
     # ── Helpers ──────────────────────────────────────────────────────────
     def _capture(self, serial: str, xml_text: str, screen: ScreenAnalysis) -> None:
@@ -71,6 +74,14 @@ class SignInDriver:
         if ok:
             time.sleep(_TYPE_DELAY)
         return ok, err
+
+    def _hand_over(self, app_name: str, what: str) -> None:
+        """`input text` cannot type this value: the technician types it in the
+        Mirror, and the loop carries on when the screen changes."""
+        if app_name not in self.hand_typed:
+            self.hand_typed.add(app_name)
+            self.log.warn(t("log.signin.not_typeable", app=app_name, what=t(f"field.{what}")))
+            self.runner.emit_manual_action(app_name, t("manual.type_by_hand", what=t(f"field.{what}")))
 
     # ── Generic sign-in loop ─────────────────────────────────────────────
     def run_sign_in(self, session: SessionConfig, device: DeviceInfo, app_name: str,
@@ -156,6 +167,8 @@ class SignInDriver:
             if ok:
                 self.adb.press_key(device.serial, KEY_ENTER)
                 self.log.ok(t("log.signin.email_injected", app=app_name))
+            elif err == NOT_TYPEABLE:
+                self._hand_over(app_name, "email")
             else:
                 self.log.warn(t("log.signin.email_failed", error=err or "?"))
         return True
@@ -171,6 +184,8 @@ class SignInDriver:
             if ok:
                 self.adb.press_key(device.serial, KEY_ENTER)
                 self.log.ok(t("log.signin.password_injected"))
+            elif err == NOT_TYPEABLE:
+                self._hand_over(app_name, "password")
             else:
                 self.log.warn(t("log.signin.password_failed", error=err or "?"))
         elif not session.user_password and not state.manual_logged:
@@ -295,6 +310,8 @@ class SignInDriver:
             ok, err = self._type_into(device.serial, targets["phone"], session.employee_phone)
             if ok:
                 self.log.ok(t("log.enroll.phone_injected", app=app_name))
+            elif err == NOT_TYPEABLE:
+                self._hand_over(app_name, "phone")
             else:
                 self.log.warn(t("log.enroll.phone_failed", app=app_name, error=err or "?"))
             state.phone_injected = True

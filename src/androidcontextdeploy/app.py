@@ -79,7 +79,7 @@ class DeploymentApp(ctk.CTk):
 
     # ── Layout: rail | cards + console | mirror ──────────────────────────
     def _build_layout(self) -> None:
-        banner = theme.load_banner()
+        banner = load_banner()
         self.grid_columnconfigure(0, weight=0, minsize=290)
         self.grid_columnconfigure(1, weight=1, minsize=560)
         self.grid_columnconfigure(2, weight=0, minsize=MirrorPanel.SIZES["normal"])
@@ -132,8 +132,10 @@ class DeploymentApp(ctk.CTk):
             self.form.set_validation(t("form.invalid_email"), is_error=True)
             return
         self.session = SessionConfig(email=email, user_password=password, employee_phone=phone)
+        if not all(value.isascii() for value in (email, password, phone)):
+            self.logger.warn(t("log.app.not_typeable"))
         self.runner.reset()
-        if self.recorder is not None:
+        if self.recorder is not None and self.poller is not None:
             # Secrets first, then open the capture folder.
             self.recorder.set_secrets(password, phone)
             self.logger.info(t("log.app.diag_active", folder=self.recorder.start_session()))
@@ -148,7 +150,7 @@ class DeploymentApp(ctk.CTk):
         if self.runner.busy:
             self.logger.warn(t("log.app.busy_reset"))
             return
-        if self.poller is not None:
+        if self.poller is not None and self.recorder is not None:
             self.poller.stop()
             self.recorder.stop_session()
         self.session = None
@@ -255,7 +257,8 @@ class DeploymentApp(ctk.CTk):
         (self.logger.ok if adb_sent else self.logger.warn)(
             t("log.lockdown.adb_off" if adb_sent else "log.lockdown.adb_failed"))
         if dev_off and adb_sent:
-            self.after(0, self._mark_lockdown_done)
+            # Worker thread: never touch Tk here, the UI thread drains the queue.
+            self.runner.emit({"type": "lockdown_done"})
 
     def _mark_lockdown_done(self) -> None:
         name = t("result.lockdown.name")
@@ -319,6 +322,8 @@ class DeploymentApp(ctk.CTk):
             self.sidebar.set_app_status(str(event["app"]), str(event["status"]))
         elif kind == "manual_action":
             self.cards.set_manual_action(str(event["message"]))
+        elif kind == "lockdown_done":
+            self._mark_lockdown_done()
 
     # ── Mirror ───────────────────────────────────────────────────────────
     def _resize_mirror(self, state: str) -> None:
@@ -354,6 +359,14 @@ class DeploymentApp(ctk.CTk):
         self.mirror_service.stop()
         self.monitor.stop()
         self.destroy()
+
+
+def load_banner() -> str:
+    """banner.txt next to the tool; "" when absent (the plain name is shown)."""
+    try:
+        return (app_root() / "banner.txt").read_text(encoding="utf-8").rstrip("\n")
+    except OSError:
+        return ""
 
 
 def main(argv: list[str] | None = None) -> int:

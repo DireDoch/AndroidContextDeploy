@@ -7,7 +7,7 @@ Manual Action banner, Confirm and Cancel. The last card is the Checklist.
 from __future__ import annotations
 
 import tkinter as tk
-from typing import Callable
+from collections.abc import Callable
 
 import customtkinter as ctk
 

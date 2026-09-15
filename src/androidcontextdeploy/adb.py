@@ -9,26 +9,34 @@ import shutil
 import subprocess
 import threading
 import time
-from typing import Iterable
+from collections.abc import Iterable
+from typing import TYPE_CHECKING
 
 from androidcontextdeploy.manifest import app_root
 from androidcontextdeploy.models import DeviceInfo
+
+if TYPE_CHECKING:
+    from androidcontextdeploy.diagnostics import DiagnosticRecorder
 
 # In a windowed PyInstaller build every adb call would flash a console window
 # on Windows. The constant is 0 elsewhere.
 _NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)
 
-# Launcher activities used when `cmd package resolve-activity` answers nothing.
-_KNOWN_ACTIVITIES: dict[str, str] = {
-    "com.microsoft.windowsintune.companyportal":
-        "com.microsoft.windowsintune.companyportal/com.microsoft.intune.MainActivity",
-    "com.azure.authenticator": "com.azure.authenticator/.AuthenticatorActivity",
-    "com.microsoft.teams": "com.microsoft.teams/.activity.TeamsActivity",
-    "com.microsoft.office.outlook": "com.microsoft.office.outlook/.MainActivity",
-    "com.microsoft.emmx": "com.microsoft.emmx/.MainActivity",
-}
-
 KEY_ENTER = 66
+
+# inject_text's error for text `input text` cannot type: anything non-ASCII.
+NOT_TYPEABLE = "not typeable"
+
+
+def typing_script(text: str) -> str:
+    """The `input text` commands, one per line, that type `text` exactly.
+
+    `input text` reads "%s" as a space: spaces are sent as %s, and a literal
+    "%s" is split across two commands. Single quotes keep & | ; $ " literal.
+    """
+    parts = text.split("%s")
+    chunks = [("s" if i else "") + part + ("%" if i < len(parts) - 1 else "") for i, part in enumerate(parts)]
+    return "".join("input text '" + c.replace(" ", "%s").replace("'", "'\\''") + "'\n" for c in chunks if c)
 
 
 def resolve_adb() -> str:
@@ -39,8 +47,9 @@ def resolve_adb() -> str:
     local = app_root() / "platform-tools" / ("adb.exe" if os.name == "nt" else "adb")
     if local.exists():
         return str(local)
-    if shutil.which("adb"):
-        return shutil.which("adb")
+    on_path = shutil.which("adb")
+    if on_path:
+        return on_path
     try:
         from adbutils._utils import adb_path
         return adb_path()
@@ -52,19 +61,19 @@ class AdbService:
     def __init__(self, adb_command: str | None = None) -> None:
         self.adb_command = adb_command or resolve_adb()
         # Diagnostic recorder (ADR-0005), injected by the app. None = no capture.
-        self.recorder = None
+        self.recorder: DiagnosticRecorder | None = None
         # The Detection Loop and the diagnostic poller write the same remote dump
         # file; two concurrent dumps would corrupt each other.
         self._dump_lock = threading.Lock()
 
-    def _run(self, args: Iterable[str], timeout: int = 15) -> tuple[bool, str, str]:
+    def _run(self, args: Iterable[str], timeout: int = 15, stdin: str | None = None) -> tuple[bool, str, str]:
         args = list(args)
         command = [self.adb_command, *args]
         try:
             # adb speaks UTF-8; Windows would decode as cp1252 and choke on
             # uiautomator dumps. errors="replace" keeps a stray byte harmless.
             result = subprocess.run(
-                command, capture_output=True, text=True, encoding="utf-8",
+                command, input=stdin, capture_output=True, text=True, encoding="utf-8",
                 errors="replace", timeout=timeout, check=False,
                 creationflags=_NO_WINDOW)
             ok, out, err = result.returncode == 0, result.stdout.strip(), result.stderr.strip()
@@ -75,7 +84,8 @@ class AdbService:
         except OSError as exc:
             ok, out, err = False, "", f"adb failed: {exc}"
         if self.recorder is not None:
-            self.recorder.log_adb(args, ok, out, err)
+            # stdin carries what was typed: the log says it was there, never what it was.
+            self.recorder.log_adb(args if stdin is None else [*args, "<stdin>"], ok, out, err)
         return ok, out, err
 
     def _shell(self, serial: str, *args: str, timeout: int = 15) -> tuple[bool, str, str]:
@@ -188,10 +198,19 @@ class AdbService:
         return ok, err
 
     def inject_text(self, serial: str, text: str) -> tuple[bool, str]:
-        # `input text` goes through the Android shell: spaces become %s and the
-        # whole string is single-quoted so &, |, ; in a password stay literal.
-        quoted = "'" + text.replace(" ", "%s").replace("'", "'\\''") + "'"
-        ok, _, err = self._shell(serial, "input", "text", quoted)
+        """Type text into the focused field.
+
+        The commands reach `adb shell` on stdin, not as arguments, so a password
+        never shows in the computer's process list. Non-ASCII text is refused
+        with NOT_TYPEABLE -- `input text` throws on it -- and the caller hands it
+        to the technician.
+        """
+        if not text.isascii():
+            return False, NOT_TYPEABLE
+        ok, out, err = self._run(["-s", serial, "shell"], stdin=typing_script(text))
+        # `input` exits 0 even when it throws.
+        if ok and "exception" in f"{out}\n{err}".lower():
+            return False, err or out
         return ok, err
 
     def press_key(self, serial: str, keyevent: int) -> tuple[bool, str]:
@@ -221,7 +240,8 @@ class AdbService:
             time.sleep(poll_interval)
         return False
 
-    def _launch_activity(self, serial: str, package_id: str, user_id: int = 0) -> str:
+    def _launch_activity(self, serial: str, package_id: str, user_id: int = 0, activity: str = "") -> str:
+        """The phone's own answer first; then the catalog's `activity`; then a guess."""
         args = ["cmd", "package", "resolve-activity", "--brief",
                 "-c", "android.intent.category.LAUNCHER"]
         args += (["--user", str(user_id)] if user_id else []) + [package_id]
@@ -229,14 +249,14 @@ class AdbService:
         for line in stdout.splitlines():
             if line.strip().startswith(package_id + "/"):
                 return line.strip()
-        return _KNOWN_ACTIVITIES.get(package_id, f"{package_id}/.MainActivity")
+        return activity or f"{package_id}/.MainActivity"
 
-    def open_app(self, serial: str, package_id: str, user_id: int = 0) -> tuple[bool, str]:
+    def open_app(self, serial: str, package_id: str, user_id: int = 0, activity: str = "") -> tuple[bool, str]:
         """`am start -n` on the resolved launcher. Android Enterprise refuses
         this for a Work Profile app ("permission to access user") -- that is
         expected and becomes a Manual Action. `monkey` is a fallback on user 0
         only; it cannot target a managed profile."""
-        activity = self._launch_activity(serial, package_id, user_id)
+        activity = self._launch_activity(serial, package_id, user_id, activity)
         args = ["am", "start"] + (["--user", str(user_id)] if user_id else []) + ["-n", activity]
         ok, stdout, err = self._shell(serial, *args)
         # am start can exit 0 while printing "Error: ..."
@@ -249,8 +269,8 @@ class AdbService:
         return False, err or stdout
 
     def pin_to_home(self, serial: str, package_id: str, app_name: str,
-                    user_id: int = 0) -> tuple[bool, str]:
-        activity = self._launch_activity(serial, package_id, user_id)
+                    user_id: int = 0, activity: str = "") -> tuple[bool, str]:
+        activity = self._launch_activity(serial, package_id, user_id, activity)
         extras = ["--es", "android.intent.extra.shortcut.NAME", app_name,
                   "--ez", "android.intent.extra.shortcut.DUPLICATE", "false",
                   "--ecn", "android.intent.extra.shortcut.INTENT", activity]

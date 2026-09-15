@@ -190,8 +190,8 @@ class ScreenDetector:
         analysis.named_screen, analysis.named_targets = self._detect_named_screen(
             screen_text, clickable, editable)
         seen: set[str] = set()
-        for node in clickable:
-            label = (node.text or node.content_desc).strip()
+        for button in clickable:
+            label = (button.text or button.content_desc).strip()
             if label and label.lower() not in seen:
                 seen.add(label.lower())
                 analysis.clickable_labels.append(label)
@@ -234,17 +234,17 @@ class ScreenDetector:
         if link := self._find_clickable(clickable, _OTHER_METHOD_KEYWORDS):
             return "authenticator_other_method", {"link": link}
 
-        if any(k in screen_text for k in _TERMS_KEYWORDS):
-            if accept := self._find_clickable(clickable, _ACCEPT_KEYWORDS):
-                return "terms", {"accept": accept}
+        if any(k in screen_text for k in _TERMS_KEYWORDS) and (
+                accept := self._find_clickable(clickable, _ACCEPT_KEYWORDS)):
+            return "terms", {"accept": accept}
 
-        if any(k in screen_text for k in _ACCESS_SETUP_KEYWORDS):
-            if cont := self._find_clickable(clickable, _CONTINUE_KEYWORDS, exclude=_SIGNOUT_EXCLUDE):
-                return "access_setup", {"continue": cont}
+        if any(k in screen_text for k in _ACCESS_SETUP_KEYWORDS) and (
+                cont := self._find_clickable(clickable, _CONTINUE_KEYWORDS, exclude=_SIGNOUT_EXCLUDE)):
+            return "access_setup", {"continue": cont}
 
-        if any(k in screen_text for k in _SKIP_SETUP_KEYWORDS):
-            if skip := self._find_clickable(clickable, _SKIP_BUTTON_KEYWORDS):
-                return "skip_setup", {"skip": skip}
+        if any(k in screen_text for k in _SKIP_SETUP_KEYWORDS) and (
+                skip := self._find_clickable(clickable, _SKIP_BUTTON_KEYWORDS)):
+            return "skip_setup", {"skip": skip}
 
         return "", {}
 

@@ -1,7 +1,7 @@
 """Left rail: Banner, device card, session summary, progress sidebar."""
 from __future__ import annotations
 
-from typing import Callable
+from collections.abc import Callable
 
 import customtkinter as ctk
 

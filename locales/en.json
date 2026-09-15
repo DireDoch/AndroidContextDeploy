@@ -57,6 +57,9 @@
   "enroll.target.sms_checkbox": "“Text me a code”",
   "enroll.target.next": "“Next” after the phone number",
 
+  "field.email": "email",
+  "field.password": "password",
+  "field.phone": "phone number",
   "form.eyebrow": "TECHNICIAN SESSION",
   "form.title": "Sign in with the {organization} account",
   "form.subtitle": "The employee's email and password. Kept in memory only, never written to disk.",
@@ -73,6 +76,7 @@
 
   "log.app.ready": "Ready. Waiting for a technician session. (adb: {adb})",
   "log.app.session_started": "Session started for {email}.",
+  "log.app.not_typeable": "The session holds characters the tool cannot type on a phone (accents, non-Latin letters). When a sign-in needs them, you will type them in the Mirror.",
   "log.app.session_reset": "Session reset. Waiting for a technician session.",
   "log.app.busy_reset": "A Module is running: finish or cancel it before starting a new session.",
   "log.app.no_device": "No device connected.",
@@ -123,12 +127,14 @@
   "log.signin.password_injected": "Password typed.",
   "log.signin.password_failed": "Typing the password failed ({error}). Type it by hand.",
   "log.signin.password_manual": "{app}: password field, but no password in the session. Type it by hand.",
+  "log.signin.not_typeable": "{app}: the {what} contains characters adb cannot type (accents, non-Latin letters). Type it in the Mirror.",
   "log.signin.button": "{app}: tapping “{label}”.",
   "log.signin.button_stuck": "{app}: “{label}” still showing after 2 taps. Carry on on the phone, then press Confirm.",
 
   "manual.open_app": "Open “{app}” on the phone: tap its icon in the Mirror. From the sign-in screen on, the tool types the email and password itself.",
   "manual.sms_code": "Type the code received by SMS on the phone, then “Verify”. The tool carries on when the screen changes.",
   "manual.phone_entry": "No phone number in the session: type the employee's number, tick “Text me a code”, and let the employee finish MFA. Enrollment only moves on once the managed Play Store shows.",
+  "manual.type_by_hand": "Type the {what} yourself in the Mirror: it contains characters the tool cannot type (accents, non-Latin letters). The tool carries on when the screen changes.",
 
   "mirror.title": "▌MIRROR",
   "mirror.no_device": "No device",
@@ -172,6 +178,7 @@
   "result.app.sign_in_manual": "sign in by hand",
   "result.app.pinned": "pinned",
   "result.app.pin_manual": "pin to the home screen by hand",
+  "result.app.typed_by_hand": "a credential was typed by hand (characters adb cannot type)",
   "result.enrollment.done": "enrolled",
   "result.enrollment.cancelled": "Enrollment cancelled before the managed Play Store",
   "result.final.profile": "Work Profile",

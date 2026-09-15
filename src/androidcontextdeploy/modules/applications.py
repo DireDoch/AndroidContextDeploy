@@ -49,7 +49,7 @@ def run(ctx) -> list[Result]:
         if ctx.adb.is_installed(serial, app.package_id, user):
             ctx.log.ok(t("log.app.already_installed", app=app.name))
         else:
-            ok, error = ctx.adb.open_play_store(serial, app.package_id, user)
+            ok, _ = ctx.adb.open_play_store(serial, app.package_id, user)
             # "permission to access user" is Android Enterprise refusing a
             # cross-profile launch: normal, Intune pushes required apps itself.
             ctx.log.info(t("log.app.store_opened" if ok else "log.app.store_blocked",
@@ -73,7 +73,7 @@ def run(ctx) -> list[Result]:
         # 3. Sign in
         if app.sign_in:
             ctx.runner.emit_progress((index + 0.5) / total, t("progress.app.sign_in", step=step))
-            opened, _ = ctx.adb.open_app(serial, app.package_id, user)
+            opened, _ = ctx.adb.open_app(serial, app.package_id, user, activity=app.activity)
             if opened:
                 ctx.runner.emit_app_status(app.name, "auth_pending")
             else:
@@ -106,13 +106,15 @@ def run(ctx) -> list[Result]:
                     manual.append(t("result.app.sign_in_manual"))
                 else:
                     done.append(t("result.app.signed_in"))
+            if app.name in driver.hand_typed:
+                manual.append(t("result.app.typed_by_hand"))
             ctx.runner.emit_app_status(app.name, "auth_confirmed")
 
         # 4. Pin
         if app.pin:
             ctx.runner.emit_progress((index + 0.75) / total, t("progress.app.pin", step=step))
             ctx.runner.emit_app_status(app.name, "pinning")
-            ok, detail = ctx.adb.pin_to_home(serial, app.package_id, app.name, user)
+            ok, detail = ctx.adb.pin_to_home(serial, app.package_id, app.name, user, activity=app.activity)
             if ok:
                 done.append(t("result.app.pinned"))
                 ctx.runner.emit_app_status(app.name, "pinned")

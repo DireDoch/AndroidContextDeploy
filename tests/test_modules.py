@@ -22,6 +22,7 @@ class FakePhone:
         self.work_user = work_user
         self.pin_ok = pin_ok
         self.recorder = None
+        self.opened: list[tuple[str, str]] = []
 
     def put_setting(self, serial, namespace, key, value):
         if key not in self.ignored:
@@ -43,7 +44,11 @@ class FakePhone:
     def open_play_store(self, serial, package_id, user=0):
         return True, ""
 
-    def pin_to_home(self, serial, package_id, name, user=0):
+    def open_app(self, serial, package_id, user=0, activity=""):
+        self.opened.append((package_id, activity))
+        return False, "permission to access user"   # a Work Profile app: Manual Action
+
+    def pin_to_home(self, serial, package_id, name, user=0, activity=""):
         return self.pin_ok, ""
 
 
@@ -113,3 +118,50 @@ def test_a_crashing_module_becomes_an_error_result() -> None:
     ctx.runner._execute(Broken, ctx)
     assert ctx.runner.results[-1].kind == "ERROR" and not ctx.runner.busy
     assert ctx.runner.drain_events()[-1]["kinds"] == ["ERROR"]
+
+
+def _signing_manifest():
+    return parse_manifest({
+        "organization": "Example Corp",
+        "catalog": [{"name": "Company Portal", "package_id": "cp", "enrollment": True, "sign_in": True},
+                    {"name": "Teams", "package_id": "com.microsoft.teams", "sign_in": True,
+                     "activity": "com.microsoft.teams/.Main"}],
+    })
+
+
+def _driver(enrollment: str, sign_in: str, hand_typed: set[str]):
+    class Driver:
+        def __init__(self, runner, organization) -> None:
+            self.hand_typed = hand_typed
+
+        def run_enrollment(self, *args):
+            return enrollment
+
+        def run_sign_in(self, *args, **kwargs):
+            return sign_in
+    return Driver
+
+
+def test_sign_in_outcomes_and_hand_typed_credentials_reach_the_checklist(monkeypatch) -> None:
+    monkeypatch.setattr(applications, "OPEN_DELAY", 0)
+    monkeypatch.setattr(applications, "SignInDriver", _driver("play_store", "timeout", {"Teams"}))
+    phone = FakePhone(installed={"cp", "com.microsoft.teams"})
+    results = {r.name: r for r in applications.run(_ctx(phone, _signing_manifest()))}
+    assert results["Company Portal"].kind == "OK"
+    assert results["Teams"].kind == "MANUAL"
+    assert "sign in by hand" in results["Teams"].remedy and "typed by hand" in results["Teams"].remedy
+    assert ("com.microsoft.teams", "com.microsoft.teams/.Main") in phone.opened, "the catalog activity is used"
+
+
+def test_a_cancelled_enrollment_stops_the_apps_after_it(monkeypatch) -> None:
+    monkeypatch.setattr(applications, "OPEN_DELAY", 0)
+    monkeypatch.setattr(applications, "SignInDriver", _driver("cancelled", "auto", set()))
+    phone = FakePhone(installed={"cp", "com.microsoft.teams"})
+    results = {r.name: r for r in applications.run(_ctx(phone, _signing_manifest()))}
+    assert results["Company Portal"].kind == "ERROR"
+    assert results["Teams"].kind == "N/A"
+
+
+def test_an_empty_selection_is_one_not_applicable_row() -> None:
+    manifest = parse_manifest({"organization": "Example Corp", "catalog": []})
+    assert [r.kind for r in applications.run(_ctx(FakePhone(), manifest))] == ["N/A"]

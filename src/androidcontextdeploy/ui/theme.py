@@ -5,8 +5,6 @@ import sys
 
 import customtkinter as ctk
 
-from androidcontextdeploy.manifest import app_root
-
 BG           = "#111412"
 CARD         = "#1a1e1b"
 CARD_ALT     = "#232924"
@@ -36,11 +34,3 @@ APP_NAME = "AndroidContextDeploy"
 
 def mono(size: int, weight: str = "normal") -> ctk.CTkFont:
     return ctk.CTkFont(family=MONO, size=size, weight=weight)
-
-
-def load_banner() -> str:
-    """banner.txt next to the tool; "" when absent (the plain name is shown)."""
-    try:
-        return (app_root() / "banner.txt").read_text(encoding="utf-8").rstrip("\n")
-    except OSError:
-        return ""
