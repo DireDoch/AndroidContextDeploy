@@ -52,14 +52,17 @@ through both, with a Module template to copy.
 git clone https://github.com/DireDoch/AndroidContextDeploy.git
 cd AndroidContextDeploy
 python -m venv .venv
-.venv/bin/pip install -r requirements.txt pytest      # Windows: .venv\Scripts\pip
-.venv/bin/python -m pytest
+.venv/bin/pip install -r requirements-dev.txt -e .    # Windows: .venv\Scripts\pip
+.venv/bin/ruff check .
+.venv/bin/mypy
+.venv/bin/python -m pytest --cov
 .venv/bin/python main.py                               # add --diag to capture screens
 ```
 
 Python 3.11 or later, with Tk (`python -m tkinter` opens a window). The tests
 need no phone: adb is faked and every screen is a recorded XML dump. CI runs them
-on Ubuntu and Windows for every pull request.
+on Ubuntu and Windows for every pull request, with ruff and mypy; on Ubuntu the
+window tests run under Xvfb and coverage must stay at 80 % or more.
 
 ## What a change should come with
 

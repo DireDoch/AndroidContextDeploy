@@ -193,7 +193,7 @@ phone once as in section 2.2.
     \ `tar -xzf AndroidContextDeploy-v*-linux.tar.gz`
     \ `cd AndroidContextDeploy && ./AndroidContextDeploy`],
   [*From source*], [Python 3.11+ with Tk, a virtual environment,
-    `pip install -r requirements.txt`, `python main.py` — below.],
+    `pip install -r requirements.txt -e .`, `python main.py` — below.],
 )
 
 `deploy.json`, `banner.txt` and `locales/` sit next to the executable (at the
@@ -237,8 +237,8 @@ git clone https://github.com/DireDoch/AndroidContextDeploy.git
 cd AndroidContextDeploy
 python3 -m venv .venv
 source .venv/bin/activate   # fish: activate.fish · Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-python main.py
+pip install -r requirements.txt -e .
+python main.py              # or: androidcontextdeploy
 ```
 
 === Options
@@ -381,7 +381,10 @@ appears it types into it.
 
     Two rules are never broken:
 
-    - the *password* is never logged, and neither is the phone number;
+    - the *password* is never logged, and neither is the phone number; both
+      reach the phone on `adb shell`'s standard input, never on a command line;
+    - a value with accents is never typed (`adb` types ASCII only): the tool
+      asks you to type it in the Mirror, and the Checklist notes it;
     - a *one-time code field* is never typed into, even though its hint mentions
       "phone": that code belongs to the employee.
 
@@ -476,6 +479,7 @@ forbidden to ADB by Android, or a secret only the employee has.
   [Device settings], [`settings put`, read back.], text(fill: okGreen)[tool],
   [Opening the store page], [An intent on the managed Play Store.], text(fill: okGreen)[tool],
   [Typing email and password], [Injection into a recognised field.], text(fill: okGreen)[tool],
+  [Typing a value with accents], [`adb` types ASCII only.], text(fill: warnOrange)[you],
   [Enrollment screens it knows], [Continue, Skip, Accept, "Example Corp device", Phone method…], text(fill: okGreen)[tool],
   [Pinning to the home screen], [A launcher broadcast. Some launchers refuse it.], text(fill: okGreen)[tool, or you],
   [Opening a Work Profile app], [Android Enterprise refuses it to ADB (`SecurityException`).], text(fill: warnOrange)[you],
@@ -570,6 +574,8 @@ deploy.json          the manifest: Organization, device_settings, catalog
 banner.txt           the startup banner
 locales/en.json      UI Language strings (fr.json, …)
 main.py              entry point: --diag, --lang
+pyproject.toml       package metadata; ruff, mypy and pytest settings
+requirements.txt     exact versions for CI and releases (-dev: plus tools)
 build.py             PyInstaller bundle and archive
 scrcpy_server/       scrcpy-server jar for the Mirror (Apache-2.0)
 src/androidcontextdeploy/
@@ -753,6 +759,10 @@ assert "S3cret" not in log          # the password is never logged
 ```
 
 `python -m pytest` runs the whole suite in a few seconds, on Linux or Windows.
+CI adds three checks on every push: `ruff` (style and common bugs), `mypy`
+(types) and coverage of at least 80 %, measured with the window tests running
+under Xvfb — one of them clicks the Mirror and checks that the touch lands on the
+pixel under the pointer.
 
 = Enrollment in depth
 
@@ -840,6 +850,9 @@ remediation — for free.
 ```json
 { "name": "Slack", "package_id": "com.Slack", "sign_in": true, "pin": true }
 ```
+
+Add `"activity": "com.Slack/.MainActivity"` only if the tool cannot open or pin
+the app: the phone's own answer is always tried first.
 
 *An Android setting.* Any key `settings get` can read:
 
@@ -963,12 +976,14 @@ def test_old_patch_is_a_warning() -> None:
 == Building a release
 
 ```bash
-pip install -r requirements.txt pyinstaller
+pip install -r requirements-dev.txt
 python build.py 1.0.0
 ```
 
 Or push a tag: `git tag v1.0.0 && git push --tags`. GitHub Actions builds the
-Windows zip and the Linux tarball and attaches them to the release.
+Windows zip and the Linux tarball and publishes them with `SHA256SUMS.txt` and a
+build provenance attestation, which anyone can check before running a download:
+`gh attestation verify <archive> -R DireDoch/AndroidContextDeploy`.
 
 = Troubleshooting
 
@@ -1004,6 +1019,7 @@ the `deploy.json` key or the Intune assignment.
   [The tool does not open an app], [Expected in a Work Profile: follow the orange banner and tap it in the Mirror.],
   [Stuck on a screen during Enrollment], [It waits by design. Act in the Mirror. If the screen should be known, capture it with `--diag` (chapter 7).],
   [Typed into the wrong field], [Stop with Confirm or Cancel, fix by hand, and report the screen with its XML.],
+  [ACTION REQUIRED: type it yourself], [The email, password or phone number has accents or other non-ASCII characters, which `adb` cannot type. Type it in the Mirror; the tool carries on when the screen changes.],
   [Pinning always fails], [Some launchers refuse shortcut broadcasts. It stays a Manual Step; set `"pin": false` to stop trying.],
   [A setting always WARNs], [The key is read-only or renamed on that manufacturer. Remove it from `device_settings`.],
 )

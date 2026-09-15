@@ -86,6 +86,9 @@ ADB is powerful, not almighty, and some steps belong to a human on purpose:
   Mirror, and from the sign-in screen on, it types the email and password itself.
 - **MFA.** Approving a sign-in or typing an SMS code is the employee's. The tool
   waits — Enrollment waits forever, by design, until the managed Play Store shows.
+- **Values with accents.** `adb` types ASCII only. An email, password or phone
+  number with accents is never sent: the tool asks you to type it in the Mirror,
+  and the Checklist notes it.
 - **Lockdown.** Turning USB debugging off is irreversible at the desk, so it is a
   button you press, never a step that runs.
 
@@ -170,11 +173,13 @@ git clone https://github.com/DireDoch/AndroidContextDeploy.git
 cd AndroidContextDeploy
 python3 -m venv .venv
 source .venv/bin/activate      # fish: .venv/bin/activate.fish · Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-python main.py
+pip install -r requirements.txt -e .
+python main.py                 # or: androidcontextdeploy
 ```
 
-On Linux the udev step above applies here too.
+`requirements.txt` pins the exact versions CI and the release use; `-e .`
+installs the tool itself from the clone. On Linux the udev step above applies
+here too.
 
 ### Options
 
@@ -221,6 +226,7 @@ Editing it never needs a rebuild.
 | `catalog[].sign_in` | Run the Detection Loop and type the credentials. |
 | `catalog[].pin` | Put a shortcut on the home screen. |
 | `catalog[].selected` | Ticked by default (default `true`). |
+| `catalog[].activity` | Launcher activity (`package/.Activity`), used only when the phone cannot resolve it. Optional. |
 
 A mistake in the file is reported on start with the key to fix, before anything
 touches a phone.
@@ -245,24 +251,38 @@ There are two different languages, and they are not the same thing:
 ## Tests
 
 ```bash
-pip install pytest
-python -m pytest
+pip install -r requirements-dev.txt -e .
+ruff check .                     # lint
+mypy                             # types
+python -m pytest --cov           # tests and coverage
 ```
 
 No phone needed: adb is faked and every screen is a recorded, masked XML dump.
-Every pull request runs the suite on Ubuntu and Windows, and compiles
-`docs/manual.typ` so the manual cannot rot while nobody rebuilds it.
+`tests/test_gui.py` opens the real window with a fake phone — including a check
+that a click on the Mirror touches the stream pixel under the pointer — and is
+skipped without a display.
+
+Every push and pull request runs ruff, mypy and the suite on Ubuntu and Windows.
+On Ubuntu the window tests run under Xvfb and coverage must stay at 80 % or more.
+CI also compiles `docs/manual.typ`, so the manual cannot rot while nobody rebuilds
+it.
 
 ## Building
 
 ```bash
-pip install pyinstaller
+pip install -r requirements-dev.txt
 python build.py 1.0.0
 ```
 
 Produces `dist/AndroidContextDeploy/` and an archive. Pushing a `v*` tag builds
-both the Windows and the Linux bundle on GitHub Actions and attaches them to the
-release.
+both the Windows and the Linux bundle on GitHub Actions and publishes them with
+`SHA256SUMS.txt` and a build provenance attestation. To check that a download
+came, untouched, from this repository's workflow:
+
+```bash
+sha256sum -c SHA256SUMS.txt --ignore-missing
+gh attestation verify AndroidContextDeploy-v1.0.0-linux.tar.gz -R DireDoch/AndroidContextDeploy
+```
 
 ## Structure
 
@@ -271,6 +291,8 @@ deploy.json                      <- apps, settings, organization (edit this)
 banner.txt                       <- startup banner (editable)
 locales/                         <- UI Languages: en.json, fr.json
 main.py                          <- entry point (--diag, --lang)
+pyproject.toml                   <- package, ruff, mypy and pytest settings
+requirements.txt                 <- exact runtime versions (-dev: plus the tools)
 build.py                         <- PyInstaller bundle
 scrcpy_server/                   <- scrcpy-server jar for the Mirror (Apache-2.0)
 src/androidcontextdeploy/

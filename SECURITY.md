@@ -6,7 +6,10 @@ AndroidContextDeploy is worth being careful with, because it drives a phone over
 USB debugging with an employee's credentials in hand:
 
 - It **types the employee's email, password and, optionally, personal phone
-  number** into the phone with `adb shell input text`.
+  number** into the phone with `input text`, sent on `adb shell`'s standard
+  input so they never appear in the computer's process list. A value with
+  characters `input text` cannot type (anything non-ASCII) is never sent: the
+  technician types it in the Mirror.
 - It **changes Android settings** listed in `deploy.json` with `settings put`.
 - It **pushes `scrcpy-server`** to `/data/local/tmp` to mirror the screen and
   send touches. Nothing is installed as an app.
@@ -18,6 +21,7 @@ USB debugging with an employee's credentials in hand:
 The email, password and phone number live **in memory only** for the Session.
 They are never written to disk, never logged — the password and phone number are
 masked even in the diagnostic capture — and they are gone when the window closes.
+The diagnostic `adb.log` records that text was typed, never what.
 
 ## The diagnostic capture holds personal data
 
