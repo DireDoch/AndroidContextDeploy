@@ -1,0 +1,49 @@
+name: Bug report
+description: Something went wrong while preparing a phone
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What you expected, and what you got instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: console
+    attributes:
+      label: The relevant lines
+      description: |
+        From the console or the Checklist. Paste the lines around the problem --
+        this is rendered as code, no backticks needed. Remove any email address first.
+      render: text
+    validations:
+      required: false
+
+  - type: textarea
+    id: screen
+    attributes:
+      label: Stuck on a screen?
+      description: |
+        Run with `--diag`, reproduce, and attach the `NNN.xml` of that screen from
+        `diag/session_*/` (the password and phone number are already masked).
+        Do NOT attach the PNGs unless you have checked them for personal data.
+    validations:
+      required: false
+
+  - type: input
+    id: phone
+    attributes:
+      label: Phone model, Android version, Phone Language
+      placeholder: Samsung Galaxy A16, Android 15, French
+    validations:
+      required: false
+
+  - type: input
+    id: platform
+    attributes:
+      label: How you ran it
+      placeholder: Windows release zip v1.0.0 / python main.py on Ubuntu 24.04
+    validations:
+      required: false
