@@ -1,10 +1,11 @@
-"""Entry point: python main.py [--diag] [--lang fr]"""
+"""Entry point for `python main.py [--diag] [--lang fr]` and the PyInstaller build.
+
+Needs `pip install -e .` first; installed that way, the same entry point is also
+the `androidcontextdeploy` command.
+"""
 import sys
-from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent / "src"))
-
-from androidcontextdeploy.app import main  # noqa: E402
+from androidcontextdeploy.app import main
 
 if __name__ == "__main__":
     sys.exit(main())

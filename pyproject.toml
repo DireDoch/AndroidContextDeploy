@@ -1,3 +1,76 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "androidcontextdeploy"
+version = "1.0.0"
+description = "Phone preparation, Intune enrollment and quick device diagnostics for Android, driven over ADB"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.11"
+authors = [{ name = "DireDoch", email = "anthonyboily1@outlook.com" }]
+keywords = ["android", "adb", "intune", "enrollment", "scrcpy", "mdm"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: X11 Applications :: Tk",
+    "Environment :: Win32 (MS Windows)",
+    "Intended Audience :: System Administrators",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Topic :: System :: Systems Administration",
+]
+# Ranges: what the code supports. requirements.txt pins the exact versions CI
+# and the release are built with.
+dependencies = [
+    "customtkinter>=5.2,<6",
+    "pillow>=10.0",
+    # Mirror (ADR-0003): adbutils pushes scrcpy-server and ships an adb binary,
+    # PyAV decodes the raw H.264 stream, numpy holds the frames.
+    "adbutils>=2.8,<3",
+    "av>=12",
+    "numpy>=1.26",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "pytest-cov>=5", "ruff>=0.6", "mypy>=1.10", "pyinstaller>=6"]
+
+[project.scripts]
+androidcontextdeploy = "androidcontextdeploy.app:main"
+
+[project.urls]
+Homepage = "https://github.com/DireDoch/AndroidContextDeploy"
+Documentation = "https://github.com/DireDoch/AndroidContextDeploy/blob/main/docs/manual.pdf"
+Issues = "https://github.com/DireDoch/AndroidContextDeploy/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 testpaths = ["tests"]
+markers = ["gui: opens real Tk windows (skipped without a display unless ACD_REQUIRE_GUI=1)"]
+
+[tool.coverage.run]
+source = ["androidcontextdeploy"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF"]
+# The UI uses typographic glyphs on purpose (– … “ ”).
+ignore = ["RUF001"]
+
+[tool.mypy]
+files = ["src"]
+# customtkinter, adbutils and av ship no type information.
+ignore_missing_imports = true

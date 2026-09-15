@@ -26,3 +26,8 @@ docs/*.pdf.tmp
 *.swp
 .DS_Store
 Thumbs.db
+
+# Coverage and editable installs
+.coverage
+htmlcov/
+*.egg-info/

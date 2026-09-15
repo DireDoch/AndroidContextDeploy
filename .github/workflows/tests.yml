@@ -6,12 +6,35 @@ on:
   pull_request:
 
 jobs:
+  lint:
+    name: ruff and mypy
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements*.txt
+
+      - name: Install
+        run: |
+          python -m pip install -r requirements-dev.txt
+          python -m pip install -e . --no-deps
+
+      - name: ruff
+        run: ruff check .
+
+      - name: mypy
+        run: mypy
+
   pytest:
     name: pytest (${{ matrix.os }})
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-24.04, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -19,16 +42,31 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements*.txt
 
       - name: Install
-        run: python -m pip install -r requirements.txt pytest
+        run: |
+          python -m pip install -r requirements-dev.txt
+          python -m pip install -e . --no-deps
 
-      - name: Run pytest
-        run: python -m pytest -q
+      # Linux runs the real-window tests under a virtual display and is where
+      # coverage is enforced: ACD_REQUIRE_GUI turns a skipped GUI test into a failure.
+      - name: pytest, GUI under Xvfb, coverage >= 80 %
+        if: runner.os == 'Linux'
+        env:
+          ACD_REQUIRE_GUI: "1"
+        run: |
+          sudo apt-get update -q && sudo apt-get install -y -q xvfb imagemagick
+          xvfb-run -a -s "-screen 0 1920x1080x24" python -m pytest --cov --cov-fail-under=80
+
+      - name: pytest
+        if: runner.os == 'Windows'
+        run: python -m pytest
 
   manual:
     name: Manual builds
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
 
