@@ -98,7 +98,8 @@ def test_a_click_on_the_mirror_touches_the_pixel_under_the_pointer(scaling: floa
     ctk.set_widget_scaling(scaling)
     root = ctk.CTk()
     try:
-        root.geometry("700x1000+0+0")
+        # Room for the enlarged Mirror at 150 %: 560 px * 1.5 plus the margins.
+        root.geometry("1100x1040+0+0")
         root.attributes("-topmost", True)
         root.grid_rowconfigure(0, weight=1)
         touches: list[tuple[float, float, str]] = []
