@@ -1,0 +1,18 @@
+{
+  "organization": "Contoso",
+  "language": "auto",
+
+  "device_settings": [
+    { "name": "Screen timeout: 10 minutes", "namespace": "system", "key": "screen_off_timeout", "value": "600000" },
+    { "name": "Manual brightness",          "namespace": "system", "key": "screen_brightness_mode", "value": "0" },
+    { "name": "Brightness level",           "namespace": "system", "key": "screen_brightness", "value": "160" }
+  ],
+
+  "catalog": [
+    { "name": "Company Portal",          "package_id": "com.microsoft.windowsintune.companyportal", "enrollment": true, "sign_in": true, "pin": true },
+    { "name": "Microsoft Authenticator", "package_id": "com.azure.authenticator",       "sign_in": true, "pin": true },
+    { "name": "Microsoft Teams",         "package_id": "com.microsoft.teams",           "sign_in": true, "pin": true },
+    { "name": "Microsoft Outlook",       "package_id": "com.microsoft.office.outlook",  "sign_in": true, "pin": true },
+    { "name": "Microsoft Edge",          "package_id": "com.microsoft.emmx",            "selected": false }
+  ]
+}

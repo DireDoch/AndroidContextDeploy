@@ -1,0 +1,8 @@
+customtkinter>=5.2,<6
+pillow>=10.0
+
+# Mirror (ADR-0003): adbutils pushes and starts scrcpy-server and ships an adb
+# binary, PyAV decodes the raw H.264 stream, numpy holds the frames.
+adbutils>=2.8,<3
+av>=12
+numpy>=1.26

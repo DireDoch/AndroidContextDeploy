@@ -1,0 +1,7 @@
+# Normalise line endings so a clone behaves the same on every machine.
+* text=auto eol=lf
+
+# Binaries: never diff or merge, just take the incoming version.
+*.png binary
+*.jar binary
+docs/manual.pdf binary

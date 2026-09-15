@@ -1,0 +1,28 @@
+# Python
+.venv*/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Build output (build.py)
+build/
+dist/
+
+# A local adb dropped next to the tool
+platform-tools/
+
+# Diagnostic captures (ADR-0005): raw XML, PNG and adb.log of real screens.
+# PNGs can show an employee's phone number in pixels. NEVER commit.
+# Only masked XML fixtures under tests/ belong in git.
+diag/
+
+# Typst
+docs/*.pdf.tmp
+
+# Editors / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
