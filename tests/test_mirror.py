@@ -4,15 +4,18 @@ from __future__ import annotations
 import socket
 import struct
 import time
+from pathlib import Path
 from types import SimpleNamespace
 
 import numpy as np
 import pytest
 
-from androidcontextdeploy import mirror_service
+from androidcontextdeploy import i18n, mirror_service
 from androidcontextdeploy.mirror_service import MirrorService
 from androidcontextdeploy.models import AppLogger
 from androidcontextdeploy.ui.mirror import stream_point
+
+i18n.load(Path(__file__).resolve().parents[1], "en")   # the tests read log messages
 
 FRAME = np.zeros((1024, 464, 3), np.uint8)          # scrcpy max_size=1024, portrait
 
@@ -135,7 +138,8 @@ def test_the_stream_starts_decodes_and_reports_an_unplug(monkeypatch, jar) -> No
 
 def test_a_server_that_never_listens_fails_once_with_its_output(monkeypatch, jar) -> None:
     _with_device(monkeypatch, FakeDevice([]))
-    monkeypatch.setattr(mirror_service.time, "time", _fast_clock())
+    # Only mirror_service's clock: the test's own _wait keeps real time.
+    monkeypatch.setattr(mirror_service, "time", SimpleNamespace(time=_fast_clock(), sleep=lambda s: None))
     logger = AppLogger()
     service = MirrorService(logger, "")
     service.start("SERIAL")
@@ -151,6 +155,23 @@ def _fast_clock():
         now[0] += 10
         return now[0]
     return clock
+
+
+def test_a_reset_connection_is_reported_not_frozen() -> None:
+    class ResetSocket:
+        def recv(self, size):
+            raise ConnectionResetError
+
+    logger = AppLogger()
+    service = MirrorService(logger, "")
+    service._state = "running"
+    service._stream_loop(ResetSocket())             # type: ignore[arg-type]
+    assert service.state == "failed", "an unplug that resets the socket must not leave a frozen Mirror"
+    assert [event.level for event in logger.drain()] == ["WARN"]
+
+    service._state = "idle"                         # stop() closed it: nothing to report
+    service._stream_loop(ResetSocket())             # type: ignore[arg-type]
+    assert service.state == "idle" and not logger.drain()
 
 
 def test_without_the_jar_the_mirror_is_unavailable(monkeypatch, tmp_path) -> None:

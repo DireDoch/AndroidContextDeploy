@@ -67,13 +67,16 @@ def _gradient() -> np.ndarray:
     return frame
 
 
-def _window_pixels(root: tk.Misc, folder: Path) -> Image.Image:
-    """What X actually drew in the window. ImageMagick's `import -window` reads
-    the window itself, so screen scaling and other windows cannot get in the way."""
+def _require_import() -> None:
     if shutil.which("import") is None:
         if os.environ.get("ACD_REQUIRE_GUI"):
             raise RuntimeError("ACD_REQUIRE_GUI=1 needs ImageMagick's `import`")
         pytest.skip("ImageMagick's `import` is needed to read the window's pixels")
+
+
+def _window_pixels(root: tk.Misc, folder: Path) -> Image.Image:
+    """What X actually drew in the window. ImageMagick's `import -window` reads
+    the window itself, so screen scaling and other windows cannot get in the way."""
     path = folder / "window.png"
     subprocess.run(["import", "-silent", "-window", hex(root.winfo_id()), str(path)], check=True)
     return Image.open(path).convert("RGB")
@@ -95,6 +98,7 @@ def _widget_at(widget: tk.Misc, x: int, y: int) -> tk.Misc:
 @pytest.mark.parametrize("size", ["normal", "large"])
 @pytest.mark.parametrize("scaling", [1.0, 1.5])
 def test_a_click_on_the_mirror_touches_the_pixel_under_the_pointer(scaling: float, size: str, tmp_path) -> None:
+    _require_import()                                # before any window is opened
     ctk.set_widget_scaling(scaling)
     root = ctk.CTk()
     try:

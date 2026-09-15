@@ -162,7 +162,7 @@ class MirrorService:
                 time.sleep(0.01)
                 continue
             except OSError:
-                break                               # closed by stop() or unplug
+                raw = b""                           # reset by an unplug, or closed by stop()
             if not raw:
                 if self._state == "running":
                     self.logger.warn(t("log.mirror.interrupted"))

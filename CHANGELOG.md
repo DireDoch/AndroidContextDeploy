@@ -22,6 +22,8 @@ Notable changes to this project. The format follows
 ### Fixed
 
 - Mirror taps landed up to 334 px off target, depending on the display scaling.
+- An unplug that reset the video connection left the Mirror frozen on its last
+  frame without a word in the console.
 - A literal `%s` in a password was typed as a space.
 - A value with accents was reported as typed although Android typed nothing. The
   technician is now asked to type it in the Mirror, and the Checklist notes it.
