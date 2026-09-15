@@ -72,7 +72,7 @@ jobs:
 
       # The PDF is committed, so this only proves the source still compiles -
       # it is what stops docs/manual.typ rotting while nobody rebuilds it.
-      - uses: typst-community/setup-typst@v4
+      - uses: typst-community/setup-typst@v5
         with:
           typst-version: "0.15.1"
 
