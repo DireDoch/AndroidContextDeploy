@@ -317,7 +317,9 @@ docs/
 - **[The manual (PDF)](docs/manual.pdf)** — what the tool does, what it leaves to
   you, the architecture in diagrams, ADB and the other technologies explained
   simply, Enrollment in depth, how to extend it, and troubleshooting.
-  Rebuild it with `typst compile docs/manual.typ`.
+  Rebuild it with
+  `typst compile --ignore-system-fonts --creation-timestamp 1767225600 docs/manual.typ`:
+  CI fails when the committed PDF differs from that build.
 - **[docs/adr/](docs/adr/)** — the decisions a newcomer would otherwise try to
   "fix": no app on the phone, no timeout on Enrollment, no OCR.
 - **[CONTEXT.md](CONTEXT.md)** — the vocabulary: Module, Result, Work Profile,

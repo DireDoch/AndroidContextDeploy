@@ -72,11 +72,29 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # The PDF is committed, so this only proves the source still compiles -
-      # it is what stops docs/manual.typ rotting while nobody rebuilds it.
       - uses: typst-community/setup-typst@v5
         with:
           typst-version: "0.15.1"
 
-      - name: Compile the manual
-        run: typst compile docs/manual.typ /tmp/manual.pdf
+      # The flags at the top of docs/manual.typ: embedded fonts only and a fixed
+      # date, so the PDF is the same bytes on any machine. Typst has no option to
+      # fail on warnings, so the log is checked.
+      - name: Compile the manual, failing on any warning
+        run: |
+          mkdir -p build
+          typst compile --ignore-system-fonts --creation-timestamp 1767225600 docs/manual.typ build/manual.pdf 2> build/typst.log || { cat build/typst.log; exit 1; }
+          cat build/typst.log
+          if grep -q "warning:" build/typst.log; then echo "::error file=docs/manual.typ::Typst warnings, see the log above"; exit 1; fi
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: manual
+          path: build/manual.pdf
+          if-no-files-found: error
+
+      - name: The committed PDF matches its source
+        run: |
+          cmp docs/manual.pdf build/manual.pdf || {
+            echo "::error file=docs/manual.pdf::docs/manual.pdf is out of date: rebuild it with the command at the top of docs/manual.typ"
+            exit 1
+          }

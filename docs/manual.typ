@@ -1,6 +1,7 @@
 // AndroidContextDeploy manual.
 //
-// Build with:  typst compile docs/manual.typ
+// Build with (reproducible, the exact bytes CI checks docs/manual.pdf against):
+//   typst compile --ignore-system-fonts --creation-timestamp 1767225600 docs/manual.typ
 //
 // Diagrams are CeTZ and console output is styled text, so they cannot drift
 // from the source. Screenshots live in docs/images/.
@@ -24,7 +25,7 @@
 
 #set document(title: "AndroidContextDeploy - Manual", author: "AndroidContextDeploy")
 #set page(paper: "a4", margin: (x: 2.2cm, y: 2.4cm), numbering: "1", number-align: center)
-#set text(font: ("Libertinus Serif", "DejaVu Serif"), size: 10.5pt, lang: "en")
+#set text(font: "Libertinus Serif", size: 10.5pt, lang: "en")
 #set par(justify: true, leading: 0.65em)
 #show link: it => text(fill: accent, it)
 
