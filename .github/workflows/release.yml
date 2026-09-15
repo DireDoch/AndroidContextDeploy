@@ -1,0 +1,37 @@
+name: Release
+
+# Push a tag like v1.0.0: builds Windows and Linux bundles and attaches them
+# to a GitHub Release.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build (${{ matrix.os }})
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"   # PyAV and numpy wheels guaranteed
+
+      - name: Install
+        run: python -m pip install -r requirements.txt pyinstaller
+
+      - name: Build
+        run: python build.py ${{ github.ref_name }}
+
+      - name: Attach to the release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/AndroidContextDeploy-v*.zip
+            dist/AndroidContextDeploy-v*.tar.gz
