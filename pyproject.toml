@@ -25,7 +25,7 @@ classifiers = [
 # Ranges: what the code supports. requirements.txt pins the exact versions CI
 # and the release are built with.
 dependencies = [
-    "customtkinter>=5.2,<6",
+    "customtkinter>=5.2,<7",
     "pillow>=10.0",
     # Mirror (ADR-0003): adbutils pushes scrcpy-server and ships an adb binary,
     # PyAV decodes the raw H.264 stream, numpy holds the frames.
